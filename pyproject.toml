@@ -1,0 +1,16 @@
+[project]
+name = "order-service"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Maxim Merkulov", email = "m.merkulovdodo@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+order-service = "order_service:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"

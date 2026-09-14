@@ -6,7 +6,15 @@ authors = [
     { name = "Maxim Merkulov", email = "m.merkulovdodo@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "alembic>=1.20.0",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy[asyncio]>=2.0.52",
+    "uvicorn>=0.52.4",
+]
 
 [project.scripts]
 order-service = "order_service:main"

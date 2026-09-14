@@ -11,7 +11,7 @@ from order_service.presentation.api.schemas import CreateOrderRequest, order_to_
 router = APIRouter()
 
 
-@router.post("/orders", status_code=201)
+@router.post("/orders", status_code=201, response_model=OrderResponse)
 async def create_order(
         body: CreateOrderRequest,
         use_case: CreateOrderUseCase = Depends(get_create_order_use_case)

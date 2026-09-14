@@ -28,14 +28,19 @@ class Settings(BaseSettings):
     POSTGRES_USERNAME: str | None = None
     POSTGRES_PASSWORD: str | None = None
     POSTGRES_DATABASE_NAME: str | None = None
-    CAPASHINO_BASE_URL: str
+    CAPASHINO_BASE_URL: str | None = None
+    CAPASHINO_URL: str | None = None
     CAPASHINO_API_KEY: str
 
     @model_validator(mode="before")
     @classmethod
-    def assemble_database_url(cls, data: Any) -> Any:
+    def assemble_settings(cls, data: Any) -> Any:
         if not isinstance(data, dict):
             return data
+
+        capashino_url = data.get("CAPASHINO_URL") or data.get("CAPASHINO_BASE_URL")
+        if capashino_url:
+            data["CAPASHINO_BASE_URL"] = capashino_url.rstrip("/")
 
         if data.get("DATABASE_URL"):
             data["DATABASE_URL"] = _to_asyncpg_url(data["DATABASE_URL"])
@@ -59,9 +64,11 @@ class Settings(BaseSettings):
         return data
 
     @model_validator(mode="after")
-    def require_database_url(self) -> "Settings":
+    def require_required_settings(self) -> "Settings":
         if not self.DATABASE_URL:
             raise ValueError("DATABASE_URL or POSTGRES_* variables must be set")
+        if not self.CAPASHINO_BASE_URL:
+            raise ValueError("CAPASHINO_BASE_URL or CAPASHINO_URL must be set")
         return self
 
 

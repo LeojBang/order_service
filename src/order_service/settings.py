@@ -21,7 +21,13 @@ def _to_asyncpg_url(url: str) -> str:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
-    DATABASE_URL: str
+    DATABASE_URL: str | None = None
+    POSTGRES_CONNECTION_STRING: str | None = None
+    POSTGRES_HOST: str | None = None
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USERNAME: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DATABASE_NAME: str | None = None
     CAPASHINO_BASE_URL: str
     CAPASHINO_API_KEY: str
 
@@ -31,14 +37,12 @@ class Settings(BaseSettings):
         if not isinstance(data, dict):
             return data
 
-        database_url = data.get("DATABASE_URL")
-        if database_url:
-            data["DATABASE_URL"] = _to_asyncpg_url(database_url)
+        if data.get("DATABASE_URL"):
+            data["DATABASE_URL"] = _to_asyncpg_url(data["DATABASE_URL"])
             return data
 
-        connection_string = data.get("POSTGRES_CONNECTION_STRING")
-        if connection_string:
-            data["DATABASE_URL"] = _to_asyncpg_url(connection_string)
+        if data.get("POSTGRES_CONNECTION_STRING"):
+            data["DATABASE_URL"] = _to_asyncpg_url(data["POSTGRES_CONNECTION_STRING"])
             return data
 
         host = data.get("POSTGRES_HOST")
@@ -51,9 +55,14 @@ class Settings(BaseSettings):
                 f"postgresql+asyncpg://{quote_plus(username)}:{quote_plus(password)}"
                 f"@{host}:{port}/{database_name}"
             )
-            return data
 
         return data
+
+    @model_validator(mode="after")
+    def require_database_url(self) -> "Settings":
+        if not self.DATABASE_URL:
+            raise ValueError("DATABASE_URL or POSTGRES_* variables must be set")
+        return self
 
 
 settings = Settings()

@@ -60,6 +60,14 @@ class SQLAlchemyOrderRepository(OrderRepository):
             return None
         return self._to_entity(order_model)
 
+    async def get_by_id_for_update(self, order_id: UUID) -> Order | None:
+        statement = select(OrderORM).where(OrderORM.id == order_id).with_for_update()
+        result = await self._session.execute(statement)
+        order_model = result.scalar_one_or_none()
+        if order_model is None:
+            return None
+        return self._to_entity(order_model)
+
     async def get_by_idempotency_key(self, idempotency_key: str) -> Order | None:
         statement = select(OrderORM).where(OrderORM.idempotency_key == idempotency_key)
         result = await self._session.execute(statement)

@@ -18,6 +18,10 @@ class OrderRepository(ABC):
         """Найти заказ по id или вернуть None."""
 
     @abstractmethod
+    async def get_by_id_for_update(self, order_id: UUID) -> Order | None:
+        """Найти заказ по id с блокировкой строки (SELECT FOR UPDATE)."""
+
+    @abstractmethod
     async def get_by_idempotency_key(self, key: str) -> Order | None:
         """Найти заказ по ключу идемпотентности (для POST /orders retry)."""
 

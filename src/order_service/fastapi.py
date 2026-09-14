@@ -1,6 +1,7 @@
 """Точка входа FastAPI — HTTP API + Kafka consumer (shipment events).
 
-Outbox poller вынесен в отдельный процесс: bin/run.py
+Фабрика create_app() для сборки приложения; module-level app — для uvicorn.
+Outbox poller — отдельный процесс bin/run.py (старт через bin/start.sh).
 """
 
 import asyncio
@@ -39,9 +40,10 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(lifespan=lifespan)
-    app.include_router(router, prefix="/api")
-    return app
+    """Собрать и настроить экземпляр FastAPI."""
+    application = FastAPI(lifespan=lifespan)
+    application.include_router(router, prefix="/api")
+    return application
 
 
 app = create_app()

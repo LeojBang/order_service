@@ -31,29 +31,21 @@ class HandlePaymentCallbackUseCase:
         self._notifications_client = notifications_client
 
     async def execute(self, payment: PaymentDTO) -> Order:
+        notify_paid = False
+
         async with self._unit_of_work() as uow:
-            order = await uow.orders.get_by_id(payment.order_id)
+            order = await uow.orders.get_by_id_for_update(payment.order_id)
             if not order:
                 raise OrderNotFoundError
 
-        # Идемпотентность: заказ уже обработан — не меняем БД, но шлём notify
-        # (если прошлый раз commit прошёл, а notification упал)
-        if payment.status == "succeeded" and order.status == OrderStatus.PAID:
-            await self._notifications_client.send_notification(
-                message="PAID: Ваш заказ успешно оплачен и готов к отправке",
-                reference_id=str(order.id),
-                idempotency_key=f"{order.id}-PAID",
-            )
-            return order
-        if payment.status == "failed" and order.status == OrderStatus.CANCELLED:
-            return order
-
-        if payment.status == "succeeded":
-            order.status = OrderStatus.PAID
-            order.updated_at = datetime.now(UTC)
-            async with self._unit_of_work() as uow:
+            if payment.status == "succeeded" and order.status == OrderStatus.PAID:
+                notify_paid = True
+            elif payment.status == "failed" and order.status == OrderStatus.CANCELLED:
+                pass
+            elif payment.status == "succeeded":
+                order.status = OrderStatus.PAID
+                order.updated_at = datetime.now(UTC)
                 await uow.orders.update(order)
-                # Outbox в той же транзакции — Shipping получит order.paid через Kafka
                 await uow.outbox.add(
                     event_type="order.paid",
                     payload={
@@ -65,18 +57,20 @@ class HandlePaymentCallbackUseCase:
                     },
                 )
                 await uow.commit()
+                notify_paid = True
+            elif payment.status == "failed":
+                order.status = OrderStatus.CANCELLED
+                order.updated_at = datetime.now(UTC)
+                await uow.orders.update(order)
+                await uow.commit()
+            else:
+                return order
+
+        if notify_paid:
             await self._notifications_client.send_notification(
                 message="PAID: Ваш заказ успешно оплачен и готов к отправке",
                 reference_id=str(order.id),
                 idempotency_key=f"{order.id}-PAID",
             )
-        elif payment.status == "failed":
-            order.status = OrderStatus.CANCELLED
-            order.updated_at = datetime.now(UTC)
-            async with self._unit_of_work() as uow:
-                await uow.orders.update(order)
-                await uow.commit()
-        else:
-            return order
 
         return order

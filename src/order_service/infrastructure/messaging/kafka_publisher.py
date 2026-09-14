@@ -1,3 +1,5 @@
+"""Kafka producer — отправка JSON-событий в топик."""
+
 import json
 from typing import Any
 
@@ -5,17 +7,19 @@ from aiokafka import AIOKafkaProducer
 
 
 class KafkaProducer:
+    """Обёртка над AIOKafkaProducer для outbox poller."""
+
     def __init__(
         self,
         bootstrap_servers: str,
         topic: str,
     ):
         self._bootstrap_servers = bootstrap_servers
-        self._topic = topic
+        self._topic = topic  # топик по умолчанию (order.events)
         self._producer: AIOKafkaProducer | None = None
 
     async def start(self):
-        """Initialize and start the Kafka producer"""
+        """Запустить producer (вызывается один раз при старте приложения)."""
         self._producer = AIOKafkaProducer(
             bootstrap_servers=self._bootstrap_servers,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
@@ -24,7 +28,7 @@ class KafkaProducer:
         await self._producer.start()
 
     async def stop(self):
-        """Stop the Kafka producer"""
+        """Остановить producer при shutdown приложения."""
         if self._producer:
             await self._producer.stop()
 
@@ -34,7 +38,7 @@ class KafkaProducer:
         key: str | None = None,
         topic: str | None = None,
     ) -> None:
-        """Send a message to Kafka"""
+        """Отправить сообщение в Kafka и дождаться подтверждения брокера."""
         if not self._producer:
             raise RuntimeError("Producer is not started. Call start() first.")
 
@@ -42,7 +46,7 @@ class KafkaProducer:
         await self._producer.send_and_wait(
             topic=target_topic,
             value=message,
-            key=key,
+            key=key,  # order_id — все события одного заказа в одну партицию
         )
 
     async def __aenter__(self):

@@ -1,9 +1,13 @@
+"""Доменные исключения — бизнес-ошибки, которые use case пробрасывает наверх."""
+
+
 class ItemNotAvailableError(Exception):
-    "Товара нет в наличие или товара недостаточно"
+    """Товара нет в наличии или запрошенного количества недостаточно."""
 
 
 class OrderNotFoundError(Exception):
-    "Заказ не найден"
+    """Заказ с указанным id не найден в базе."""
+
 
 class PaymentCreationError(Exception):
-    "Платеж не создался"
+    """Capashino Payments не смог создать платёж (сеть, 4xx/5xx)."""

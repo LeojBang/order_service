@@ -1,3 +1,5 @@
+"""Настройки приложения из переменных окружения и .env."""
+
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus
@@ -9,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 def _to_asyncpg_url(url: str) -> str:
+    """SQLAlchemy async требует драйвер postgresql+asyncpg://."""
     if url.startswith("postgresql+asyncpg://"):
         return url
     if url.startswith("postgres://"):
@@ -19,6 +22,12 @@ def _to_asyncpg_url(url: str) -> str:
 
 
 class Settings(BaseSettings):
+    """Конфигурация Order Service.
+
+    LMS Portal может передавать DATABASE_URL или отдельные POSTGRES_* переменные.
+    CAPASHINO_URL — алиас для CAPASHINO_BASE_URL из Portal.
+    """
+
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     DATABASE_URL: str | None = None
@@ -29,10 +38,10 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str | None = None
     POSTGRES_DATABASE_NAME: str | None = None
     CAPASHINO_BASE_URL: str | None = None
-    CAPASHINO_URL: str | None = None
+    CAPASHINO_URL: str | None = None  # имя из LMS Portal
     CAPASHINO_API_KEY: str
-    ORDER_SERVICE_BASE_URL: str
-    KAFKA_BOOTSTRAP_SERVERS: str
+    ORDER_SERVICE_BASE_URL: str  # для callback_url платежей (k8s internal URL)
+    KAFKA_BOOTSTRAP_SERVERS: str  # kafka.kafka.svc.cluster.local:9092
 
     @model_validator(mode="before")
     @classmethod
@@ -40,6 +49,7 @@ class Settings(BaseSettings):
         if not isinstance(data, dict):
             return data
 
+        # Portal отдаёт CAPASHINO_URL, мы нормализуем в CAPASHINO_BASE_URL
         capashino_url = data.get("CAPASHINO_URL") or data.get("CAPASHINO_BASE_URL")
         if capashino_url:
             data["CAPASHINO_BASE_URL"] = capashino_url.rstrip("/")
@@ -56,6 +66,7 @@ class Settings(BaseSettings):
             data["DATABASE_URL"] = _to_asyncpg_url(data["POSTGRES_CONNECTION_STRING"])
             return data
 
+        # Собираем URL из POSTGRES_* (формат LMS Portal)
         host = data.get("POSTGRES_HOST")
         username = data.get("POSTGRES_USERNAME")
         password = data.get("POSTGRES_PASSWORD")

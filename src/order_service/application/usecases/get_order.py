@@ -1,3 +1,5 @@
+"""Use case: получение заказа по id (GET /orders/{id})."""
+
 import uuid
 
 from order_service.application.ports.unit_of_work import UnitOfWork
@@ -6,6 +8,7 @@ from order_service.domain.order import Order
 
 
 class GetOrderUseCase:
+    """Простой read-only сценарий."""
 
     def __init__(self, unit_of_work: UnitOfWork):
         self._unit_of_work = unit_of_work
@@ -16,4 +19,3 @@ class GetOrderUseCase:
             if order is None:
                 raise OrderNotFoundError
             return order
-

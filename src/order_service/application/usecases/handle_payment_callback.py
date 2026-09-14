@@ -1,3 +1,8 @@
+"""Use case: callback от Capashino Payments (POST /orders/payment-callback).
+
+При успешной оплате: PAID + запись order.paid в outbox (для Shipping через Kafka).
+"""
+
 import uuid
 from datetime import datetime, UTC
 
@@ -9,10 +14,14 @@ from order_service.domain.order import Order, OrderStatus
 
 
 class HandlePaymentCallbackUseCase:
+    """Capashino вызывает наш URL после обработки платежа."""
+
     class PaymentDTO(BaseModel):
+        """Тело callback от Payments Service."""
+
         payment_id: str
         order_id: uuid.UUID
-        status: str
+        status: str  # "succeeded" или "failed"
         amount: str
         error_message: str | None
 
@@ -25,6 +34,7 @@ class HandlePaymentCallbackUseCase:
             if not order:
                 raise OrderNotFoundError
 
+        # Идемпотентность: повторный callback с тем же результатом — ничего не делаем
         if payment.status == "succeeded" and order.status == OrderStatus.PAID:
             return order
         if payment.status == "failed" and order.status == OrderStatus.CANCELLED:
@@ -35,6 +45,7 @@ class HandlePaymentCallbackUseCase:
             order.updated_at = datetime.now(UTC)
             async with self._unit_of_work() as uow:
                 await uow.orders.update(order)
+                # Outbox в той же транзакции — Shipping получит order.paid через Kafka
                 await uow.outbox.add(
                     event_type="order.paid",
                     payload={

@@ -1,3 +1,5 @@
+"""Реализация OutboxRepository — transactional outbox pattern."""
+
 import uuid
 from datetime import datetime, UTC
 from uuid import UUID
@@ -10,6 +12,8 @@ from order_service.infrastructure.persistence.models import OutboxMessage
 
 
 class SQLAlchemyOutboxRepository(OutboxRepository):
+    """Запись событий в таблицу outbox для последующей отправки poller'ом."""
+
     def __init__(self, session: AsyncSession):
         self._session = session
 
@@ -19,13 +23,19 @@ class SQLAlchemyOutboxRepository(OutboxRepository):
             event_type=event_type,
             payload=payload,
             created_at=datetime.now(UTC),
-            published_at=None,
+            published_at=None,  # poller выставит после успешной отправки в Kafka
         )
         self._session.add(message)
         await self._session.flush()
 
     async def get_unpublished(self, limit: int) -> list[OutboxMessage]:
-        statement = select(OutboxMessage).where(OutboxMessage.published_at.is_(None)).limit(limit).order_by(OutboxMessage.created_at)
+        # FIFO: сначала старые события
+        statement = (
+            select(OutboxMessage)
+            .where(OutboxMessage.published_at.is_(None))
+            .order_by(OutboxMessage.created_at)
+            .limit(limit)
+        )
         messages = await self._session.execute(statement)
         return list(messages.scalars().all())
 

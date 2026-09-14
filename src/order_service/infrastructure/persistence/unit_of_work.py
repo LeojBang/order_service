@@ -1,3 +1,5 @@
+"""Unit of Work на SQLAlchemy — одна сессия на транзакцию."""
+
 from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -12,6 +14,13 @@ from order_service.infrastructure.persistence.outbox_repository import SQLAlchem
 
 
 class SQLAlchemyUnitOfWork(UnitOfWork):
+    """Открывает async-сессию и отдаёт реализацию с репозиториями.
+
+    Использование:
+        async with unit_of_work() as uow:
+            await uow.orders.add(...)
+            await uow.commit()
+    """
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
         self._session_factory = session_factory
@@ -21,6 +30,7 @@ class SQLAlchemyUnitOfWork(UnitOfWork):
         async with self._session_factory() as session:
             try:
                 yield _SQLAlchemyUnitOfWorkImplementation(session)
+                # Если commit() не вызвали — откатываем незакоммиченные изменения
                 await session.rollback()
             except Exception:
                 await session.rollback()
@@ -28,6 +38,7 @@ class SQLAlchemyUnitOfWork(UnitOfWork):
 
 
 class _SQLAlchemyUnitOfWorkImplementation(UnitOfWorkImplementation):
+    """Конкретная реализация UoW внутри одной SQLAlchemy-сессии."""
 
     def __init__(self, session: AsyncSession):
         self._session = session

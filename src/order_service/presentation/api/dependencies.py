@@ -1,3 +1,5 @@
+"""FastAPI Depends — сборка use case и инфраструктурных зависимостей."""
+
 from functools import lru_cache
 
 from order_service.application.usecases.create_order import CreateOrderUseCase
@@ -12,6 +14,7 @@ from order_service.settings import settings
 
 @lru_cache
 def get_unit_of_work():
+    """Singleton UnitOfWork на всё приложение."""
     return SQLAlchemyUnitOfWork(SessionLocal)
 
 

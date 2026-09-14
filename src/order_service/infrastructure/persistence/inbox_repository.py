@@ -1,3 +1,5 @@
+"""Реализация InboxRepository — inbox pattern для входящих Kafka-событий."""
+
 import uuid
 from datetime import datetime, UTC
 
@@ -9,6 +11,8 @@ from order_service.infrastructure.persistence.models import InboxMessage
 
 
 class SQLAlchemyInboxRepository(InboxRepository):
+    """Хранит event_id обработанных событий — защита от повторной обработки."""
+
     def __init__(self, session: AsyncSession):
         self._session = session
 

@@ -1,3 +1,5 @@
+"""Реализация OrderRepository на SQLAlchemy."""
+
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,11 +12,14 @@ from order_service.infrastructure.persistence.models import OrderORM
 
 
 class SQLAlchemyOrderRepository(OrderRepository):
+    """Переводит доменный Order ↔ ORM-модель OrderORM."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     @staticmethod
     def _to_entity(order_model: OrderORM) -> Order:
+        """ORM → доменная сущность."""
         return Order(
             id=order_model.id,
             user_id=order_model.user_id,
@@ -28,6 +33,7 @@ class SQLAlchemyOrderRepository(OrderRepository):
 
     @staticmethod
     def _to_model(domain_order: Order) -> OrderORM:
+        """Доменная сущность → ORM."""
         return OrderORM(
             id=domain_order.id,
             user_id=domain_order.user_id,
@@ -43,7 +49,7 @@ class SQLAlchemyOrderRepository(OrderRepository):
         order_model = self._to_model(domain_order)
         try:
             self._session.add(order_model)
-            await self._session.flush()
+            await self._session.flush()  # flush, не commit — commit делает UoW
         except IntegrityError:
             await self._session.rollback()
             raise
@@ -70,4 +76,3 @@ class SQLAlchemyOrderRepository(OrderRepository):
         order_model.status = order.status.value
         order_model.updated_at = order.updated_at
         await self._session.flush()
-

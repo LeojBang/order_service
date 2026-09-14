@@ -1,3 +1,5 @@
+"""HTTP-клиент Catalog Service (Capashino)."""
+
 import httpx
 
 from order_service.application.ports.catalog_client import CatalogClient, CatalogItem
@@ -5,6 +7,8 @@ from order_service.domain.exceptions import ItemNotAvailableError
 
 
 class HttpCatalogClient(CatalogClient):
+    """Реализация CatalogClient через httpx."""
+
     def __init__(self, base_url: str, api_key: str):
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -19,6 +23,7 @@ class HttpCatalogClient(CatalogClient):
             raise ItemNotAvailableError
         response.raise_for_status()
         data = response.json()
+        # Парсим только нужные поля — лишние ключи из API не тащим
         return CatalogItem(
             id=data["id"],
             name=data["name"],

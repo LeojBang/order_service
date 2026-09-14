@@ -45,6 +45,7 @@ async def get_order_by_id(
         raise HTTPException(status_code=404, detail="Order not found")
     return order_to_response(order)
 
+
 @router.post("/orders/payment-callback", status_code=200)
 async def create_payment_callback(
         body: PaymentCallbackRequest,
@@ -62,6 +63,7 @@ async def create_payment_callback(
     except OrderNotFoundError:
         raise HTTPException(status_code=404)
     return {"status": "ok"}
+
 
 @router.get("/health")
 def health():

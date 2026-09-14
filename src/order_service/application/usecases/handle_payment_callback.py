@@ -32,14 +32,27 @@ class HandlePaymentCallbackUseCase:
 
         if payment.status == "succeeded":
             order.status = OrderStatus.PAID
+            order.updated_at = datetime.now(UTC)
+            async with self._unit_of_work() as uow:
+                await uow.orders.update(order)
+                await uow.outbox.add(
+                    event_type="order.paid",
+                    payload={
+                        "event_type": "order.paid",
+                        "order_id": str(order.id),
+                        "item_id": order.item_id,
+                        "quantity": order.quantity,
+                        "idempotency_key": order.idempotency_key,
+                    },
+                )
+                await uow.commit()
         elif payment.status == "failed":
             order.status = OrderStatus.CANCELLED
+            order.updated_at = datetime.now(UTC)
+            async with self._unit_of_work() as uow:
+                await uow.orders.update(order)
+                await uow.commit()
         else:
             return order
-
-        order.updated_at = datetime.now(UTC)
-        async with self._unit_of_work() as uow:
-            await uow.orders.update(order)
-            await uow.commit()
 
         return order

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     CAPASHINO_URL: str | None = None
     CAPASHINO_API_KEY: str
     ORDER_SERVICE_BASE_URL: str
+    KAFKA_BOOTSTRAP_SERVERS: str
 
     @model_validator(mode="before")
     @classmethod

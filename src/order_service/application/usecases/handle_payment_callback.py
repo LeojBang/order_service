@@ -36,8 +36,14 @@ class HandlePaymentCallbackUseCase:
             if not order:
                 raise OrderNotFoundError
 
-        # Идемпотентность: повторный callback с тем же результатом — ничего не делаем
+        # Идемпотентность: заказ уже обработан — не меняем БД, но шлём notify
+        # (если прошлый раз commit прошёл, а notification упал)
         if payment.status == "succeeded" and order.status == OrderStatus.PAID:
+            await self._notifications_client.send_notification(
+                message="PAID: Ваш заказ успешно оплачен и готов к отправке",
+                reference_id=str(order.id),
+                idempotency_key=f"{order.id}-PAID",
+            )
             return order
         if payment.status == "failed" and order.status == OrderStatus.CANCELLED:
             return order
@@ -59,11 +65,11 @@ class HandlePaymentCallbackUseCase:
                     },
                 )
                 await uow.commit()
-                await self._notifications_client.send_notification(
-                    message="PAID: Ваш заказ успешно оплачен и готов к отправке",
-                    reference_id=str(order.id),
-                    idempotency_key=f"{order.id}-PAID",
-                )
+            await self._notifications_client.send_notification(
+                message="PAID: Ваш заказ успешно оплачен и готов к отправке",
+                reference_id=str(order.id),
+                idempotency_key=f"{order.id}-PAID",
+            )
         elif payment.status == "failed":
             order.status = OrderStatus.CANCELLED
             order.updated_at = datetime.now(UTC)

@@ -25,7 +25,6 @@ class HandleShipmentEventUseCase:
         self._notifications_client = notifications_client
 
     async def execute(self, shipment_event: ShipmentEventDTO):
-        # Уникальный ключ события для inbox (защита от дублей Kafka)
         event_id = (
             f"{shipment_event.event_type}:"
             f"{shipment_event.order_id}:"
@@ -33,18 +32,20 @@ class HandleShipmentEventUseCase:
         )
         async with self._unit_of_work() as uow:
             if await uow.inbox.exists(event_id):
-                return  # уже обработали
+                if shipment_event.event_type == "order.shipped":
+                    await self._send_shipped_notification(shipment_event.order_id)
+                return
 
             order = await uow.orders.get_by_id(shipment_event.order_id)
             if not order:
-                return  # заказ не наш — игнорируем
+                return
 
             if shipment_event.event_type == "order.shipped":
                 order.status = OrderStatus.SHIPPED
             elif shipment_event.event_type == "order.cancelled":
                 order.status = OrderStatus.CANCELLED
             else:
-                return  # неизвестный тип — пропускаем
+                return
 
             order.updated_at = datetime.now(UTC)
             await uow.orders.update(order)
@@ -52,8 +53,11 @@ class HandleShipmentEventUseCase:
             await uow.commit()
 
         if shipment_event.event_type == "order.shipped":
-            await self._notifications_client.send_notification(
-                message="SHIPPED: Ваш заказ отправлен в доставку",
-                reference_id=str(shipment_event.order_id),
-                idempotency_key=f"{shipment_event.order_id}-SHIPPED",
-            )
+            await self._send_shipped_notification(shipment_event.order_id)
+
+    async def _send_shipped_notification(self, order_id: uuid.UUID) -> None:
+        await self._notifications_client.send_notification(
+            message="SHIPPED: Ваш заказ отправлен в доставку",
+            reference_id=str(order_id),
+            idempotency_key=f"{order_id}-SHIPPED",
+        )

@@ -47,6 +47,11 @@ class CreateOrderUseCase:
         async with self._unit_of_work() as uow:
             existing = await uow.orders.get_by_idempotency_key(order.idempotency_key)
             if existing:
+                await self._notifications_client.send_notification(
+                    message="NEW: Ваш заказ создан и ожидает оплаты",
+                    reference_id=str(existing.id),
+                    idempotency_key=f"{existing.id}-NEW",
+                )
                 return existing
 
         # 2. Собираем доменный объект заказа

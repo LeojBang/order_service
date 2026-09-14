@@ -4,11 +4,11 @@ Domain-слой про эти классы не знает; репозитори
 """
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
-from sqlalchemy import UUID, String, Integer, DateTime
+from sqlalchemy import UUID, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import Mapped, mapped_column
 
 from order_service.infrastructure.persistence.database import Base
 

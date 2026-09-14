@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from order_service.application.usecases.create_order import CreateOrderUseCase
 from order_service.application.usecases.get_order import GetOrderUseCase
 from order_service.application.usecases.handle_payment_callback import HandlePaymentCallbackUseCase
-from order_service.domain.exceptions import ItemNotAvailableError, OrderNotFoundError, PaymentCreationError
+from order_service.domain.exceptions import (
+    ItemNotAvailableError,
+    OrderNotFoundError,
+    PaymentCreationError,
+)
 from order_service.presentation.api.dependencies import (
     get_create_order_use_case,
     get_get_order_use_case,
@@ -38,9 +42,9 @@ async def create_order(
     try:
         order = await use_case.execute(dto)
     except ItemNotAvailableError:
-        raise HTTPException(status_code=400, detail="Item not available")
+        raise HTTPException(status_code=400, detail="Item not available") from None
     except PaymentCreationError:
-        raise HTTPException(status_code=400, detail="Payment failed")
+        raise HTTPException(status_code=400, detail="Payment failed") from None
     return order_to_response(order)
 
 
@@ -53,7 +57,7 @@ async def get_order_by_id(
     try:
         order = await use_case.execute(order_id)
     except OrderNotFoundError:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=404, detail="Order not found") from None
     return order_to_response(order)
 
 
@@ -73,7 +77,7 @@ async def create_payment_callback(
     try:
         await use_case.execute(dto)
     except OrderNotFoundError:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404) from None
     return {"status": "ok"}
 
 

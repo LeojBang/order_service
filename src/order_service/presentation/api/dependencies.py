@@ -45,7 +45,10 @@ def get_create_order_use_case():
 
 
 def get_handle_payment_callback_use_case():
-    return HandlePaymentCallbackUseCase(unit_of_work=get_unit_of_work(), notifications_client=get_notifications_client(),)
+    return HandlePaymentCallbackUseCase(
+        unit_of_work=get_unit_of_work(),
+        notifications_client=get_notifications_client(),
+    )
 
 
 def get_get_order_use_case():

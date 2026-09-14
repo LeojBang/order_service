@@ -2,7 +2,7 @@
 
 import httpx
 
-from order_service.application.ports.payments_client import PaymentsClient, PaymentResult
+from order_service.application.ports.payments_client import PaymentResult, PaymentsClient
 from order_service.domain.exceptions import PaymentCreationError
 
 
@@ -31,7 +31,7 @@ class HttpPaymentsClient(PaymentsClient):
             )
             response.raise_for_status()
         except (httpx.HTTPStatusError, httpx.RequestError):
-            raise PaymentCreationError
+            raise PaymentCreationError from None
 
         data = response.json()
         return PaymentResult(

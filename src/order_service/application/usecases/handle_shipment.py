@@ -1,7 +1,7 @@
 """Use case: обработка событий доставки из Kafka (order.shipped / order.cancelled)."""
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -26,9 +26,7 @@ class HandleShipmentEventUseCase:
 
     async def execute(self, shipment_event: ShipmentEventDTO):
         event_id = (
-            f"{shipment_event.event_type}:"
-            f"{shipment_event.order_id}:"
-            f"{shipment_event.shipment_id}"
+            f"{shipment_event.event_type}:{shipment_event.order_id}:{shipment_event.shipment_id}"
         )
         async with self._unit_of_work() as uow:
             if await uow.inbox.exists(event_id):

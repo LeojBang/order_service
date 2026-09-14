@@ -1,7 +1,7 @@
 """Реализация OutboxRepository — transactional outbox pattern."""
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -35,6 +35,7 @@ class SQLAlchemyOutboxRepository(OutboxRepository):
             .where(OutboxMessage.published_at.is_(None))
             .order_by(OutboxMessage.created_at)
             .limit(limit)
+            .with_for_update(skip_locked=True)
         )
         messages = await self._session.execute(statement)
         return list(messages.scalars().all())

@@ -24,10 +24,12 @@ class UnitOfWorkImplementation(ABC):
         pass
 
     @property
+    @abstractmethod
     def outbox(self) -> OutboxRepository:
         pass
 
     @property
+    @abstractmethod
     def inbox(self) -> InboxRepository:
         pass
 

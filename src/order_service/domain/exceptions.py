@@ -4,3 +4,6 @@ class ItemNotAvailableError(Exception):
 
 class OrderNotFoundError(Exception):
     "Заказ не найден"
+
+class PaymentCreationError(Exception):
+    "Платеж не создался"

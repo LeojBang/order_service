@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     CAPASHINO_BASE_URL: str | None = None
     CAPASHINO_URL: str | None = None
     CAPASHINO_API_KEY: str
+    ORDER_SERVICE_BASE_URL: str
 
     @model_validator(mode="before")
     @classmethod
@@ -41,6 +42,10 @@ class Settings(BaseSettings):
         capashino_url = data.get("CAPASHINO_URL") or data.get("CAPASHINO_BASE_URL")
         if capashino_url:
             data["CAPASHINO_BASE_URL"] = capashino_url.rstrip("/")
+
+        order_service_base_url = data.get("ORDER_SERVICE_BASE_URL")
+        if order_service_base_url:
+            data["ORDER_SERVICE_BASE_URL"] = order_service_base_url.rstrip("/")
 
         if data.get("DATABASE_URL"):
             data["DATABASE_URL"] = _to_asyncpg_url(data["DATABASE_URL"])

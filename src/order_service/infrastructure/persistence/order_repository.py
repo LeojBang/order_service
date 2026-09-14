@@ -61,3 +61,13 @@ class SQLAlchemyOrderRepository(OrderRepository):
         if order_model is None:
             return None
         return self._to_entity(order_model)
+
+    async def update(self, order: Order) -> None:
+        order_model = await self._session.get(OrderORM, order.id)
+        if order_model is None:
+            return
+
+        order_model.status = order.status.value
+        order_model.updated_at = order.updated_at
+        await self._session.flush()
+

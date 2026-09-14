@@ -8,6 +8,7 @@ from datetime import datetime, UTC
 
 from pydantic import BaseModel
 
+from order_service.application.ports.notifications_client import NotificationsClient
 from order_service.application.ports.unit_of_work import UnitOfWork
 from order_service.domain.exceptions import OrderNotFoundError
 from order_service.domain.order import Order, OrderStatus
@@ -25,8 +26,9 @@ class HandlePaymentCallbackUseCase:
         amount: str
         error_message: str | None
 
-    def __init__(self, unit_of_work: UnitOfWork):
+    def __init__(self, unit_of_work: UnitOfWork, notifications_client: NotificationsClient):
         self._unit_of_work = unit_of_work
+        self._notifications_client = notifications_client
 
     async def execute(self, payment: PaymentDTO) -> Order:
         async with self._unit_of_work() as uow:
@@ -57,6 +59,11 @@ class HandlePaymentCallbackUseCase:
                     },
                 )
                 await uow.commit()
+                await self._notifications_client.send_notification(
+                    message="PAID: Ваш заказ успешно оплачен и готов к отправке",
+                    reference_id=str(order.id),
+                    idempotency_key=f"{order.id}-PAID",
+                )
         elif payment.status == "failed":
             order.status = OrderStatus.CANCELLED
             order.updated_at = datetime.now(UTC)

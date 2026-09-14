@@ -21,6 +21,7 @@ from order_service.infrastructure.messaging.outbox_poller import (
 )
 from order_service.infrastructure.persistence.database import SessionLocal
 from order_service.infrastructure.persistence.unit_of_work import SQLAlchemyUnitOfWork
+from order_service.presentation.api.dependencies import get_notifications_client
 from order_service.presentation.api.routers import router
 from order_service.settings import settings
 
@@ -29,7 +30,7 @@ from order_service.settings import settings
 async def lifespan(app: FastAPI):
     """Lifecycle приложения — запуск/остановка фоновых worker'ов."""
     unit_of_work = SQLAlchemyUnitOfWork(SessionLocal)
-    shipment_use_case = HandleShipmentEventUseCase(unit_of_work)
+    shipment_use_case = HandleShipmentEventUseCase(unit_of_work, notifications_client=get_notifications_client())
 
     producer = KafkaProducer(
         bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,

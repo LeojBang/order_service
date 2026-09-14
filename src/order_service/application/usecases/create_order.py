@@ -10,6 +10,7 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 from order_service.application.ports.catalog_client import CatalogClient
+from order_service.application.ports.notifications_client import NotificationsClient
 from order_service.application.ports.payments_client import PaymentsClient
 from order_service.application.ports.unit_of_work import UnitOfWork
 from order_service.domain.exceptions import ItemNotAvailableError, PaymentCreationError
@@ -33,11 +34,13 @@ class CreateOrderUseCase:
         payments_client: PaymentsClient,
         order_service_base_url: str,
         unit_of_work: UnitOfWork,
+        notifications_client: NotificationsClient,
     ):
         self._catalog_client = catalog_client
         self._unit_of_work = unit_of_work
         self._payments_client = payments_client
         self._order_service_base_url = order_service_base_url
+        self._notifications_client = notifications_client
 
     async def execute(self, order: OrderDTO) -> Order:
         # 1. Идемпотентность: повторный запрос с тем же ключом → тот же заказ
@@ -67,6 +70,12 @@ class CreateOrderUseCase:
         async with self._unit_of_work() as uow:
             await uow.orders.add(order_data)
             await uow.commit()
+
+        await self._notifications_client.send_notification(
+            message="NEW: Ваш заказ создан и ожидает оплаты",
+            reference_id=str(order_data.id),
+            idempotency_key=f"{order_data.id}-NEW",
+        )
 
         # 5. Создаём платёж в Capashino (вне транзакции — внешний HTTP)
         amount = str(Decimal(item.price) * order.quantity)
